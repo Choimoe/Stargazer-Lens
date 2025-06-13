@@ -133,22 +133,22 @@
         panel.id = 'fan-calculator-panel';
         panel.innerHTML = `
             <div id="fan-panel-header">
-                <h3>算番结果 (Fan Calculator)</h3>
+                <h3>算番结果</h3>
                 <span id="fan-panel-close">&times;</span>
             </div>
             <div id="fan-panel-content">
                 <div class="fan-section">
-                    <h4>总番数 (Total Fan)</h4>
+                    <h4>总番数</h4>
                     <div id="fan-total-score"></div>
                 </div>
                 <div class="fan-section">
-                    <h4>听牌 (Waiting for)</h4>
+                    <h4>听牌</h4>
                     <div id="fan-ting-list"></div>
                 </div>
                 <div class="fan-section">
-                    <h4>番种详情 (Details)</h4>
+                    <h4>番种详情</h4>
                     <table id="fan-details-table">
-                        <thead><tr><th>番种 (Fan)</th><th>番数 (Score)</th><th>组成 (Composition)</th></tr></thead>
+                        <thead><tr><th>番种</th><th>番数</th><th>组成</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
