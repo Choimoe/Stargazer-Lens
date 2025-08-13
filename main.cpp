@@ -192,11 +192,17 @@ int main() {
         json response_json;
         std::string gb_string;
         try {
+            std::cout << "[LOG] 收到请求: " << req.body << std::endl;
+
             json received_json = json::parse(req.body);
+            std::cout << "[DEBUG] 解析后的JSON: " << received_json.dump(4) << std::endl;
+
             gb_string = JsonToGbString::translate(received_json);
+            std::cout << "[DEBUG] 牌型字符串: " << gb_string << std::endl;
             
             mahjong::Handtiles ht;
             ht.StringToHandtiles(gb_string);
+            std::cout << "[DEBUG] Handtiles对象: " << ht.HandtilesToString() << std::endl;
 
             mahjong::Fan fan;
             std::vector<mahjong::Tile> ting_tiles = fan.CalcTing(ht);
@@ -204,6 +210,7 @@ int main() {
             for (auto t : ting_tiles) {
                 ting_result.push_back(mahjong::TileToEmojiString(t));
             }
+            std::cout << "[DEBUG] 听牌结果: " << ting_result.dump() << std::endl;
 
             fan.CountFan(ht);
             json fan_details = json::array();
@@ -220,6 +227,7 @@ int main() {
                     });
                 }
             }
+            std::cout << "[DEBUG] 算番详情: " << fan_details.dump() << std::endl;
             
             response_json["status"] = "success";
             response_json["total_fan"] = fan.tot_fan_res;
@@ -227,8 +235,10 @@ int main() {
             response_json["ting"] = ting_result;
             response_json["parsed_hand"] = ht.HandtilesToString();
 
+            std::cout << "[LOG] 返回内容: " << response_json.dump(4) << std::endl;
+
         } catch (const std::exception& e) {
-            std::cerr << "处理时发生错误: " << e.what() << std::endl;
+            std::cerr << "[ERROR] 处理时发生错误: " << e.what() << std::endl;
             response_json["status"] = "error";
             response_json["message"] = e.what();
             response_json["failed_string"] = gb_string;
