@@ -4,7 +4,7 @@
 // @version      12.0
 // @description  通过悬浮窗UI优雅地展示C++算番结果，支持拖拽。
 // @author       Choimoe
-// @match        none
+// @match        https://tziakcha.net/*
 // @connect      localhost
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
@@ -82,7 +82,7 @@
         dialog.innerHTML = `
             <div id="fan-server-dialog-inner">
                 <h2>算番服务器地址</h2>
-                <label for="fan-server-dialog-input">请输入服务器地址（如：http://192.168.1.2:17711/calculate）</label>
+                <label for="fan-server-dialog-input">请输入服务器地址（如：http://192.168.1.2:17711/）</label>
                 <input id="fan-server-dialog-input" type="text" value="${CPP_SERVER_URL}" autocomplete="off" />
                 <div class="error" style="display:none;"></div>
                 <button id="fan-server-dialog-save">连接</button>
@@ -104,11 +104,13 @@
                 errorDiv.style.display = '';
                 return;
             }
+            if (!url.match(/\/$/)) url += '/';
             saveBtn.textContent = '连接中...';
             saveBtn.disabled = true;
+            const testUrl = url + 'calculate';
             GM_xmlhttpRequest({
                 method: 'POST',
-                url: url,
+                url: testUrl,
                 data: '{}',
                 headers: { 'Content-Type': 'application/json; charset=UTF-8' },
                 timeout: 3000,
@@ -119,7 +121,7 @@
                         const result = JSON.parse(response.responseText);
                         if (result.status === 'success' || result.status === 'error') {
                             localStorage.setItem('fan_calc_server_url', url);
-                            CPP_SERVER_URL = url;
+                            CPP_SERVER_URL = url + 'calculate';
                             dialog.remove();
                             onSuccess();
                         } else {
@@ -153,11 +155,22 @@
         };
     }
 
+    function getClientInfo() {
+        return {
+            type: 'connect_test',
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            platform: navigator.platform,
+            url: location.href
+        };
+    }
+
     function checkServerAvailable(url, onSuccess, onFail) {
+        const info = getClientInfo();
         GM_xmlhttpRequest({
             method: 'POST',
             url: url,
-            data: '{}',
+            data: JSON.stringify(info),
             headers: { 'Content-Type': 'application/json; charset=UTF-8' },
             timeout: 3000,
             onload: function(response) {
