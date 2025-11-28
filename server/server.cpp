@@ -25,9 +25,20 @@ void start_server(int port) {
         res.set_header("Access-Control-Allow-Origin", "*");
         json response_json;
         std::string gb_string;
+        std::string client_info;
+        std::string remote_ip = req.remote_addr;
         try {
-            logger.info(std::string("[REQUEST] 收到请求: ") + req.body);
             json received_json = json::parse(req.body);
+            if (received_json.contains("type") && received_json["type"] == "connect_test") {
+                client_info = "[CONNECT_TEST] IP: " + remote_ip + " " + received_json.dump();
+                logger.info(client_info);
+                response_json["status"] = "success";
+                response_json["message"] = "连接测试成功";
+                res.set_content(response_json.dump(4), "application/json; charset=utf-8");
+                return;
+            }
+            logger.info(std::string("[REQUEST] 收到请求: IP: ") + remote_ip + " " + req.body);
+            logger.info(std::string("[CLIENT] IP: ") + remote_ip + " UA: " + (received_json.contains("userAgent") ? received_json["userAgent"].get<std::string>() : "未知UA"));
             logger.debug(std::string("解析后的JSON: ") + received_json.dump(4));
             gb_string = JsonToGbString::translate(received_json);
             logger.debug(std::string("牌型字符串: ") + gb_string);
