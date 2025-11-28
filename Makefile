@@ -20,7 +20,7 @@ Dirs		:= $(OBJDIR) $(BINDIR)
 
 Example		:= $(BINDIR)/example
 Example		:= ./calc_server
-Objects		:= $(patsubst %.cpp, $(OBJDIR)/%.o, $(notdir $(wildcard *.cpp */*.cpp)))
+Objects		:= $(patsubst %.cpp, $(OBJDIR)/%.o, $(filter-out unit_test.cpp,$(notdir $(wildcard *.cpp */*.cpp))))
 
 
 all: $(Example)
@@ -50,9 +50,6 @@ run: $(Example)
 
 check:
 	@echo "unit_test已取消编译，无可执行文件。"
-
-check: $(Check)
-	$(Check)
 
 clean:
 	$(RM) $(OBJDIR)/*.o
