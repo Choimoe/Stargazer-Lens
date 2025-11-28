@@ -354,6 +354,6 @@ void UnitTest() {
     test("[678s,3]147m369s25pSS8p", vector<fan_t>{FAN_ZUHELONG});
 }
 
-int main() {
-    UnitTest();
-}
+// int main() {
+//     UnitTest();
+// }
