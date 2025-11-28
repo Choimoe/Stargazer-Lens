@@ -83,7 +83,7 @@ void start_server(int port) {
         res.set_content(response_json.dump(4), "application/json; charset=utf-8");
     });
 
-    std::string local_ip = "127.0.0.1";
+    std::string local_ip = "0.0.0.0";
     std::string intranet_ip;
 #if defined(_WIN32)
     char buf[256] = {0};
