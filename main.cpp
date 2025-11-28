@@ -12,6 +12,7 @@
 #include "fan.h"
 #include "handtiles.h"
 #include "print.h"
+#include "utils/log.h"
 
 using json = nlohmann::json;
 
@@ -177,7 +178,11 @@ namespace JsonToGbString {
     }
 }
 
+
+
 int main() {
+    static Logger logger("mahjong_server.log");
+
     httplib::Server svr;
 
     svr.Options("/calculate", [](const httplib::Request&, httplib::Response &res) {
@@ -187,22 +192,22 @@ int main() {
         res.status = 204;
     });
 
-    svr.Post("/calculate", [](const httplib::Request &req, httplib::Response &res) {
+    svr.Post("/calculate", [&](const httplib::Request &req, httplib::Response &res) {
         res.set_header("Access-Control-Allow-Origin", "*");
         json response_json;
         std::string gb_string;
         try {
-            std::cout << "[LOG] 收到请求: " << req.body << std::endl;
+            logger.info(std::string("[REQUEST] 收到请求: ") + req.body);
 
             json received_json = json::parse(req.body);
-            std::cout << "[DEBUG] 解析后的JSON: " << received_json.dump(4) << std::endl;
+            logger.debug(std::string("解析后的JSON: ") + received_json.dump(4));
 
             gb_string = JsonToGbString::translate(received_json);
-            std::cout << "[DEBUG] 牌型字符串: " << gb_string << std::endl;
+            logger.debug(std::string("牌型字符串: ") + gb_string);
             
             mahjong::Handtiles ht;
             ht.StringToHandtiles(gb_string);
-            std::cout << "[DEBUG] Handtiles对象: " << ht.HandtilesToString() << std::endl;
+            logger.debug(std::string("Handtiles对象: ") + ht.HandtilesToString());
 
             mahjong::Fan fan;
             std::vector<mahjong::Tile> ting_tiles = fan.CalcTing(ht);
@@ -210,7 +215,7 @@ int main() {
             for (auto t : ting_tiles) {
                 ting_result.push_back(mahjong::TileToEmojiString(t));
             }
-            std::cout << "[DEBUG] 听牌结果: " << ting_result.dump() << std::endl;
+            logger.debug(std::string("听牌结果: ") + ting_result.dump());
 
             fan.CountFan(ht);
             json fan_details = json::array();
@@ -227,18 +232,18 @@ int main() {
                     });
                 }
             }
-            std::cout << "[DEBUG] 算番详情: " << fan_details.dump() << std::endl;
-            
+            logger.debug(std::string("算番详情: ") + fan_details.dump());
+
             response_json["status"] = "success";
             response_json["total_fan"] = fan.tot_fan_res;
             response_json["fan_details"] = fan_details;
             response_json["ting"] = ting_result;
             response_json["parsed_hand"] = ht.HandtilesToString();
 
-            std::cout << "[LOG] 返回内容: " << response_json.dump(4) << std::endl;
+            logger.info(std::string("[RESPONSE] 返回内容: ") + response_json.dump(4));
 
         } catch (const std::exception& e) {
-            std::cerr << "[ERROR] 处理时发生错误: " << e.what() << std::endl;
+            logger.error(std::string("处理时发生错误: ") + e.what());
             response_json["status"] = "error";
             response_json["message"] = e.what();
             response_json["failed_string"] = gb_string;
@@ -248,8 +253,8 @@ int main() {
     });
 
     int port = 17711;
-    std::cout << "C++ 算番服务器已启动，正在监听端口: " << port << std::endl;
-    std::cout << "请保持此窗口开启..." << std::endl;
+    logger.info(std::string("C++ 算番服务器已启动，正在监听端口: ") + std::to_string(port));
+    logger.info("请保持此窗口开启...");
     svr.listen("0.0.0.0", port);
 
     return 0;
