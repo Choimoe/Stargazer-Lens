@@ -14,9 +14,177 @@
 (function() {
     'use strict';
 
-    const CPP_SERVER_URL = 'http://localhost:17711/calculate';
+    let CPP_SERVER_URL = localStorage.getItem('fan_calc_server_url') || 'http://localhost:17711/calculate';
+
+    function showServerInputDialog(onSuccess) {
+        let dialogClosed = false;
+        GM_addStyle(`
+            #fan-server-dialog {
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(44,62,80,0.7);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            #fan-server-dialog-inner {
+                background: #2c3e50;
+                border-radius: 14px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+                padding: 32px 28px 24px 28px;
+                min-width: 320px;
+                max-width: 90vw;
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            #fan-server-dialog-inner h2 {
+                color: #1abc9c;
+                font-size: 20px;
+                margin-bottom: 18px;
+                text-align: center;
+            }
+            #fan-server-dialog-inner label {
+                color: #bdc3c7;
+                font-size: 14px;
+                margin-bottom: 6px;
+            }
+            #fan-server-dialog-inner input {
+                padding: 8px 12px;
+                border-radius: 7px;
+                border: 1px solid #4a627a;
+                background: #233140;
+                color: #ecf0f1;
+                font-size: 15px;
+                margin-bottom: 16px;
+            }
+            #fan-server-dialog-inner button {
+                padding: 8px 0;
+                border: none;
+                border-radius: 7px;
+                background: #1abc9c;
+                color: #fff;
+                font-size: 16px;
+                cursor: pointer;
+                font-weight: 600;
+                margin-bottom: 6px;
+            }
+            #fan-server-dialog-inner .error {
+                color: #e74c3c;
+                font-size: 13px;
+                margin-bottom: 8px;
+                text-align: center;
+            }
+        `);
+        const dialog = document.createElement('div');
+        dialog.id = 'fan-server-dialog';
+        dialog.innerHTML = `
+            <div id="fan-server-dialog-inner">
+                <h2>算番服务器地址</h2>
+                <label for="fan-server-dialog-input">请输入服务器地址（如：http://192.168.1.2:17711/calculate）</label>
+                <input id="fan-server-dialog-input" type="text" value="${CPP_SERVER_URL}" autocomplete="off" />
+                <div class="error" style="display:none;"></div>
+                <button id="fan-server-dialog-save">连接</button>
+                <button id="fan-server-dialog-close" style="background:#7f8c8d;color:#fff;">关闭</button>
+            </div>
+        `;
+        document.body.appendChild(dialog);
+        const input = dialog.querySelector('#fan-server-dialog-input');
+        const saveBtn = dialog.querySelector('#fan-server-dialog-save');
+        const closeBtn = dialog.querySelector('#fan-server-dialog-close');
+        const errorDiv = dialog.querySelector('.error');
+        closeBtn.onclick = () => {
+            dialogClosed = true;
+            dialog.remove();
+        };
+        function tryConnect(url) {
+            if (!url.match(/^https?:\/\//)) {
+                errorDiv.textContent = '请输入合法的服务器地址';
+                errorDiv.style.display = '';
+                return;
+            }
+            saveBtn.textContent = '连接中...';
+            saveBtn.disabled = true;
+            GM_xmlhttpRequest({
+                method: 'POST',
+                url: url,
+                data: '{}',
+                headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+                timeout: 3000,
+                onload: function(response) {
+                    saveBtn.textContent = '连接';
+                    saveBtn.disabled = false;
+                    try {
+                        const result = JSON.parse(response.responseText);
+                        if (result.status === 'success' || result.status === 'error') {
+                            localStorage.setItem('fan_calc_server_url', url);
+                            CPP_SERVER_URL = url;
+                            dialog.remove();
+                            onSuccess();
+                        } else {
+                            errorDiv.textContent = '服务器响应异常';
+                            errorDiv.style.display = '';
+                        }
+                    } catch (e) {
+                        errorDiv.textContent = '无法解析服务器响应';
+                        errorDiv.style.display = '';
+                    }
+                },
+                onerror: function() {
+                    saveBtn.textContent = '连接';
+                    saveBtn.disabled = false;
+                    errorDiv.textContent = '无法连接到服务器';
+                    errorDiv.style.display = '';
+                },
+                ontimeout: function() {
+                    saveBtn.textContent = '连接';
+                    saveBtn.disabled = false;
+                    errorDiv.textContent = '连接超时';
+                    errorDiv.style.display = '';
+                }
+            });
+        }
+        saveBtn.onclick = () => {
+            tryConnect(input.value.trim());
+        };
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') saveBtn.click();
+        };
+    }
+
+    function checkServerAvailable(url, onSuccess, onFail) {
+        GM_xmlhttpRequest({
+            method: 'POST',
+            url: url,
+            data: '{}',
+            headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+            timeout: 3000,
+            onload: function(response) {
+                try {
+                    const result = JSON.parse(response.responseText);
+                    if (result.status === 'success' || result.status === 'error') {
+                        onSuccess();
+                    } else {
+                        onFail();
+                    }
+                } catch (e) {
+                    onFail();
+                }
+            },
+            onerror: onFail,
+            ontimeout: onFail
+        });
+    }
 
     function createResultPanel() {
+        const serverBar = document.createElement('div');
+        serverBar.style = 'padding: 8px 15px; background: #34495e; display: flex; align-items: center; gap: 8px;';
+        serverBar.innerHTML = `
+            <label style="color:#bdc3c7;font-size:13px;">服务器地址:</label>
+            <input id="fan-server-url-input" type="text" value="${CPP_SERVER_URL}" style="flex:1;min-width:180px;padding:4px 8px;border-radius:6px;border:1px solid #4a627a;background:#233140;color:#ecf0f1;font-size:13px;" />
+            <button id="fan-server-url-save" style="padding:4px 12px;border:none;border-radius:6px;background:#1abc9c;color:#fff;cursor:pointer;font-size:13px;">保存</button>
+        `;
         GM_addStyle(`
             #fan-calculator-panel {
                 position: fixed;
@@ -136,6 +304,9 @@
                 <h3>算番结果</h3>
                 <span id="fan-panel-close">&times;</span>
             </div>
+        `;
+        // panel.appendChild(serverBar);
+        panel.innerHTML += `
             <div id="fan-panel-content">
                 <div class="fan-section">
                     <h4>总番数</h4>
@@ -161,6 +332,21 @@
         const closeButton = panel.querySelector('#fan-panel-close');
 
         closeButton.onclick = () => panel.classList.remove('visible');
+
+        const urlInput = serverBar.querySelector('#fan-server-url-input');
+        const saveBtn = serverBar.querySelector('#fan-server-url-save');
+        saveBtn.onclick = () => {
+            let url = urlInput.value.trim();
+            if (!url) return;
+            if (!url.match(/^https?:\/\//)) {
+                alert('请输入合法的服务器地址（如：http://192.168.1.2:17711/calculate）');
+                return;
+            }
+            CPP_SERVER_URL = url;
+            localStorage.setItem('fan_calc_server_url', url);
+            saveBtn.textContent = '已保存';
+            setTimeout(() => saveBtn.textContent = '保存', 1200);
+        };
 
         let isDragging = false;
         let offset = { x: 0, y: 0 };
@@ -256,7 +442,20 @@
         })();
     `;
 
-    createResultPanel();
+    let serverDialogClosed = false;
+    checkServerAvailable(CPP_SERVER_URL, () => {
+        createResultPanel();
+    }, () => {
+        showServerInputDialog(() => {
+            createResultPanel();
+        });
+        const observer = new MutationObserver(() => {
+            if (document.getElementById('fan-server-dialog') === null) {
+                serverDialogClosed = true;
+            }
+        });
+        observer.observe(document.body, { childList: true });
+    });
     const script = document.createElement('script');
     script.textContent = codeToInject;
     (document.head || document.documentElement).appendChild(script);
