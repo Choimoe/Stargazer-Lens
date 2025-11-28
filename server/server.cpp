@@ -72,7 +72,44 @@ void start_server(int port) {
         res.set_content(response_json.dump(4), "application/json; charset=utf-8");
     });
 
+    std::string local_ip = "127.0.0.1";
+    std::string intranet_ip;
+#if defined(_WIN32)
+    char buf[256] = {0};
+    FILE* fp = popen("powershell -Command \"(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -ne 'Loopback Pseudo-Interface 1' -and $_.IPAddress -notlike '169.*' }).IPAddress\"", "r");
+    if (fp && fgets(buf, sizeof(buf), fp)) {
+        intranet_ip = std::string(buf);
+        if (!intranet_ip.empty() && intranet_ip.back() == '\n') intranet_ip.pop_back();
+    } else {
+        intranet_ip = "无法获取内网IP";
+    }
+    if (fp) pclose(fp);
+#elif defined(__APPLE__)
+    char buf[256] = {0};
+    FILE* fp = popen("ipconfig getifaddr en0", "r");
+    if (fp && fgets(buf, sizeof(buf), fp)) {
+        intranet_ip = std::string(buf);
+        if (!intranet_ip.empty() && intranet_ip.back() == '\n') intranet_ip.pop_back();
+    } else {
+        intranet_ip = "无法获取内网IP";
+    }
+    if (fp) pclose(fp);
+#elif defined(__linux__)
+    char buf[256] = {0};
+    FILE* fp = popen("hostname -I | awk '{print $1}'", "r");
+    if (fp && fgets(buf, sizeof(buf), fp)) {
+        intranet_ip = std::string(buf);
+        if (!intranet_ip.empty() && intranet_ip.back() == '\n') intranet_ip.pop_back();
+    } else {
+        intranet_ip = "无法获取内网IP";
+    }
+    if (fp) pclose(fp);
+#else
+    intranet_ip = "请手动查询内网IP";
+#endif
     std::cout << "C++ 算番服务器已启动，正在监听端口: " << port << std::endl;
+    std::cout << "本机访问地址: http://" << local_ip << ":" << port << std::endl;
+    std::cout << "内网访问地址: http://" << intranet_ip << ":" << port << std::endl;
     std::cout << "请保持此窗口开启..." << std::endl;
     svr.listen("0.0.0.0", port);
 }
