@@ -14,7 +14,8 @@
 (function() {
     'use strict';
 
-    let CPP_SERVER_URL = localStorage.getItem('fan_calc_server_url') || 'http://localhost:17711/calculate';
+    let CPP_SERVER_URL = localStorage.getItem('fan_calc_server_url') || 'http://localhost:17711';
+    let pendingRawJsonString = null;
 
     function showServerInputDialog(onSuccess) {
         let dialogClosed = false;
@@ -352,7 +353,7 @@
             let url = urlInput.value.trim();
             if (!url) return;
             if (!url.match(/^https?:\/\//)) {
-                alert('请输入合法的服务器地址（如：http://192.168.1.2:17711/calculate）');
+                alert('请输入合法的服务器地址（如：http://192.168.1.2:17711/）');
                 return;
             }
             CPP_SERVER_URL = url;
@@ -434,6 +435,22 @@
         });
     }
 
+    function isValidHandData(rawJsonString) {
+        try {
+            const data = JSON.parse(rawJsonString);
+                if (!data || !data.q) return false;
+                if (typeof data.q === 'string') {
+                    return data.q.trim().length > 0;
+                }
+                if (typeof data.q === 'object') {
+                    return Object.keys(data.q).length > 0;
+                }
+                return false;
+        } catch {
+            return false;
+        }
+    }
+
     const codeToInject = `
         (function() {
             if (window.isWsInterceptorInjected) return;
@@ -444,7 +461,8 @@
                 socket.addEventListener('message', (event) => {
                     try {
                         const data = JSON.parse(event.data);
-                        if (data && data.q) {
+                            // 支持q为对象或字符串
+                            if (data && data.q && (typeof data.q === 'string' ? data.q.trim().length > 0 : typeof data.q === 'object')) {
                             window.dispatchEvent(new CustomEvent('ForwardDataToSandbox', { detail: event.data }));
                         }
                     } catch(e) {}
@@ -456,26 +474,34 @@
     `;
 
     let serverDialogClosed = false;
-    checkServerAvailable(CPP_SERVER_URL, () => {
-        createResultPanel();
-    }, () => {
-        showServerInputDialog(() => {
-            createResultPanel();
-        });
-        const observer = new MutationObserver(() => {
-            if (document.getElementById('fan-server-dialog') === null) {
-                serverDialogClosed = true;
-            }
-        });
-        observer.observe(document.body, { childList: true });
-    });
     const script = document.createElement('script');
     script.textContent = codeToInject;
     (document.head || document.documentElement).appendChild(script);
     script.remove();
 
     window.addEventListener('ForwardDataToSandbox', (event) => {
-        forwardToServer(event.detail);
+        if (!isValidHandData(event.detail)) return;
+        checkServerAvailable(CPP_SERVER_URL, () => {
+            createResultPanel();
+            forwardToServer(event.detail);
+        }, () => {
+            pendingRawJsonString = event.detail;
+            if (!document.getElementById('fan-server-dialog')) {
+                showServerInputDialog(() => {
+                    createResultPanel();
+                    if (pendingRawJsonString) {
+                        forwardToServer(pendingRawJsonString);
+                        pendingRawJsonString = null;
+                    }
+                });
+                const observer = new MutationObserver(() => {
+                    if (document.getElementById('fan-server-dialog') === null) {
+                        serverDialogClosed = true;
+                    }
+                });
+                observer.observe(document.body, { childList: true });
+            }
+        });
     });
 
 })();
