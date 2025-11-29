@@ -1,3 +1,6 @@
+#ifdef ERROR
+#undef ERROR
+#endif
 #include <fstream>
 #include <mutex>
 #include <chrono>
