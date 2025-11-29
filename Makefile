@@ -4,9 +4,9 @@ RM			:= rm -f
 MKDIR		:= mkdir -p
 RMDIR		:= rmdir
 
-CXXFLAGS	:= -std=c++11 -O3 -I./third_party/cpp-httplib -I./third_party/json/include
-CXXDFLAGS	:= -std=c++11 -g -Wall -I./third_party/cpp-httplib -I./third_party/json/include
-LDFLAGS		:=
+CXXFLAGS	:= -std=c++11 -O3 -I./third_party/cpp-httplib -I./third_party/json/include -pthread
+CXXDFLAGS	:= -std=c++11 -g -Wall -I./third_party/cpp-httplib -I./third_party/json/include -pthread
+LDFLAGS		:= -lws2_32
 
 BUILDDIR	:= ./build
 OBJDIR		:= $(BUILDDIR)/obj
@@ -20,7 +20,7 @@ Dirs		:= $(OBJDIR) $(BINDIR)
 
 Example		:= $(BINDIR)/example
 Example		:= ./calc_server
-Objects		:= $(patsubst %.cpp, $(OBJDIR)/%.o, $(filter-out unit_test.cpp,$(notdir $(wildcard *.cpp */*.cpp))))
+Objects		:= $(patsubst %.cpp, $(OBJDIR)/%.o, $(notdir $(wildcard *.cpp */*.cpp)))
 
 
 all: $(Example)
