@@ -5,7 +5,7 @@
 // @description  通过悬浮窗UI优雅地展示C++算番结果，支持拖拽。
 // @author       Choimoe
 // @match        https://tziakcha.net/*
-// @connect      localhost
+// @connect      *
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
 // @run-at       document-start

@@ -8,6 +8,7 @@ int main(int argc, char* argv[]) {
     options.add_options()
         ("t,unit-test", "执行单元测试", cxxopts::value<bool>()->default_value("false"))
         ("p,port", "指定服务器端口", cxxopts::value<int>()->default_value("17711"))
+        ("l,log", "指定日志文件路径", cxxopts::value<std::string>()->default_value(""))
         ("h,help", "显示帮助信息");
 
     auto result = options.parse(argc, argv);
@@ -23,6 +24,7 @@ int main(int argc, char* argv[]) {
     }
 
     int port = result["port"].as<int>();
-    start_server(port);
+    std::string log_path = result["log"].as<std::string>();
+    start_server(port, log_path);
     return 0;
 }

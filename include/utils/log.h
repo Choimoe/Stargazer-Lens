@@ -13,6 +13,7 @@
 #include <map>
 #include <algorithm>
 #include <stdexcept>
+#include <filesystem>
 
 enum class LogLevel { DEBUG, INFO, WARN, ERROR };
 
@@ -38,6 +39,14 @@ private:
 
     void open() {
         std::lock_guard<std::mutex> lock(mtx);
+        try {
+            std::filesystem::path p(logfile_path);
+            if (!p.parent_path().empty()) {
+                std::filesystem::create_directories(p.parent_path());
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "[Logger] 创建日志目录失败: " << e.what() << std::endl;
+        }
         ofs.open(logfile_path, std::ofstream::out | std::ofstream::app);
         if (!ofs.is_open()) {
             std::cerr << "[Logger] 无法打开日志文件: " << logfile_path << "，将仅在控制台输出错误日志。" << std::endl;

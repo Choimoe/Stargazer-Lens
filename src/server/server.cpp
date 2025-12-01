@@ -10,8 +10,8 @@
 
 using json = nlohmann::json;
 
-void start_server(int port) {
-    static Logger logger(get_log_filename());
+void start_server(int port, const std::string& log_path) {
+    static Logger logger(log_path.empty() ? get_log_filename() : log_path);
     httplib::Server svr;
 
     svr.Options("/calculate", [](const httplib::Request&, httplib::Response &res) {
