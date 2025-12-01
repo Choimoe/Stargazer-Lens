@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "third_party/json/include/nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 namespace JsonToGbString {

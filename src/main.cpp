@@ -1,5 +1,5 @@
 #include "server/server.h"
-#include "third_party/cxxopts/include/cxxopts.hpp"
+#include <cxxopts.hpp>
 
 void UnitTest();
 

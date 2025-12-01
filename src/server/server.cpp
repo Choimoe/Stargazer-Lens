@@ -1,10 +1,10 @@
 #include "server/server.h"
 #include <iostream>
 #include <stdexcept>
-#include "third_party/GB-Mahjong/console/console.h"
-#include "third_party/GB-Mahjong/console/print.h"
-#include "third_party/GB-Mahjong/mahjong/fan.h"
-#include "third_party/GB-Mahjong/mahjong/handtiles.h"
+#include <console/console.h>
+#include <console/print.h>
+#include <mahjong/fan.h>
+#include <mahjong/handtiles.h>
 #include "utils/log.h"
 #include "utils/format.h"
 
