@@ -27,6 +27,11 @@ target_include_directories(calc_server PRIVATE
     ${CMAKE_SOURCE_DIR}/third_party/GB-Mahjong/mahjong
 )
 
+# Link Windows winsock library when building on Windows (MSVC/MinGW)
+if (WIN32)
+    target_link_libraries(calc_server PRIVATE ws2_32)
+endif ()
+
 set_source_files_properties(
     third_party/GB-Mahjong/unit_test.cpp
     PROPERTIES COMPILE_DEFINITIONS "main=gbmj_unit_main"
