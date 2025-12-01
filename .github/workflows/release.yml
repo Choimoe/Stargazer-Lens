@@ -1,0 +1,94 @@
+name: Build and Release calc_server
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure (Release)
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release -j
+
+      - name: Package (Linux/macOS)
+        if: runner.os != 'Windows'
+        id: pkg_nix
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN="build/calc_server"
+          if [ ! -f "$BIN" ]; then
+            echo "calc_server not found at $BIN" >&2
+            exit 1
+          fi
+          mkdir -p dist
+          cp "$BIN" dist/
+          chmod +x dist/calc_server
+          ARCHIVE="calc_server-${{ runner.os }}-${{ github.ref_name }}.tar.gz"
+          tar -czf "$ARCHIVE" -C dist calc_server
+          echo "ASSET=$ARCHIVE" >> "$GITHUB_OUTPUT"
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        id: pkg_win
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bin1 = Join-Path build 'Release/calc_server.exe'
+          $bin2 = Join-Path build 'calc_server.exe'
+          $bin = if (Test-Path $bin1) { $bin1 } elseif (Test-Path $bin2) { $bin2 } else { '' }
+          if (-not $bin) { throw 'calc_server.exe not found in build outputs' }
+          New-Item -ItemType Directory dist -Force | Out-Null
+          Copy-Item $bin dist/
+          $zip = "calc_server-Windows-${{ github.ref_name }}.zip"
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path dist/* -DestinationPath $zip
+          echo "ASSET=$zip" >> $env:GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: calc_server-${{ runner.os }}-${{ github.ref_name }}
+          path: |
+            ${{ steps.pkg_nix.outputs.ASSET }}
+            ${{ steps.pkg_win.outputs.ASSET }}
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release and upload assets
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          name: calc_server ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          artifacts: "artifacts/**/*"
+          artifactErrorsFailBuild: true
+          generateReleaseNotes: true
