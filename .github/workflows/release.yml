@@ -25,11 +25,36 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Configure (Release)
+      - name: Configure (Release) - Linux/macOS
+        if: runner.os != 'Windows'
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build
+      - name: Build - Linux/macOS
+        if: runner.os != 'Windows'
         run: cmake --build build --config Release -j
+
+      - name: Setup MSYS2
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          install: >-
+            base-devel
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+          update: true
+
+      - name: Configure (Release) - Windows MinGW
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          cmake -G "MinGW Makefiles" -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build - Windows MinGW
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          cmake --build build --config Release -j
 
       - name: Package (Linux/macOS)
         if: runner.os != 'Windows'
@@ -49,22 +74,24 @@ jobs:
           tar -czf "$ARCHIVE" -C dist calc_server
           echo "ASSET=$ARCHIVE" >> "$GITHUB_OUTPUT"
 
-      - name: Package (Windows)
+      - name: Package (Windows MinGW)
         if: runner.os == 'Windows'
         id: pkg_win
-        shell: pwsh
+        shell: msys2 {0}
         run: |
-          $ErrorActionPreference = 'Stop'
-          $bin1 = Join-Path build 'Release/calc_server.exe'
-          $bin2 = Join-Path build 'calc_server.exe'
-          $bin = if (Test-Path $bin1) { $bin1 } elseif (Test-Path $bin2) { $bin2 } else { '' }
-          if (-not $bin) { throw 'calc_server.exe not found in build outputs' }
-          New-Item -ItemType Directory dist -Force | Out-Null
-          Copy-Item $bin dist/
-          $zip = "calc_server-Windows-${{ github.ref_name }}.zip"
-          if (Test-Path $zip) { Remove-Item $zip -Force }
-          Compress-Archive -Path dist/* -DestinationPath $zip
-          echo "ASSET=$zip" >> $env:GITHUB_OUTPUT
+          set -euo pipefail
+          BIN="build/calc_server.exe"
+          if [ ! -f "$BIN" ]; then
+            echo "calc_server.exe not found at $BIN" >&2
+            exit 1
+          fi
+          mkdir -p dist
+          cp "$BIN" dist/
+          ZIP="calc_server-Windows-${{ github.ref_name }}.zip"
+          rm -f "$ZIP"
+          # Use zip from msys2 (installed in base-devel)
+          (cd dist && zip -r ../"$ZIP" .)
+          echo "ASSET=$ZIP" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
