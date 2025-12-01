@@ -73,6 +73,7 @@ jobs:
           chmod +x dist/calc_server
           ARCHIVE="calc_server-${{ runner.os }}-${{ github.ref_name }}.tar.gz"
           tar -czf "$ARCHIVE" -C dist calc_server
+          sha256sum "$ARCHIVE" > "$ARCHIVE.sha256"
           echo "ASSET=$ARCHIVE" >> "$GITHUB_OUTPUT"
 
       - name: Package (Windows MinGW)
@@ -92,6 +93,7 @@ jobs:
           rm -f "$ZIP"
           # Use zip from msys2 (installed in base-devel)
           (cd dist && zip -r ../"$ZIP" .)
+          sha256sum "$ZIP" > "$ZIP.sha256"
           echo "ASSET=$ZIP" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifact
@@ -99,8 +101,10 @@ jobs:
         with:
           name: calc_server-${{ runner.os }}-${{ github.ref_name }}
           path: |
-            ${{ steps.pkg_nix.outputs.ASSET }}
-            ${{ steps.pkg_win.outputs.ASSET }}
+            *.tar.gz
+            *.tar.gz.sha256
+            *.zip
+            *.zip.sha256
           if-no-files-found: error
 
   release:

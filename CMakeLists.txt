@@ -1,5 +1,19 @@
 cmake_minimum_required(VERSION 3.16)
-project(calc_server LANGUAGES CXX)
+project(calc_server LANGUAGES CXX VERSION 0.1.0)
+
+find_package(Git QUIET)
+if(GIT_FOUND)
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} describe --tags --always --dirty
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_VERSION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    if(GIT_VERSION)
+        set(PROJECT_VERSION ${GIT_VERSION})
+    endif()
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -15,6 +29,10 @@ file(GLOB SRC
 )
 
 add_executable(calc_server ${SRC})
+
+target_compile_definitions(calc_server PRIVATE
+    PROJECT_VERSION="${PROJECT_VERSION}"
+)
 
 target_include_directories(calc_server PRIVATE
     ${CMAKE_SOURCE_DIR}/include
