@@ -1,6 +1,8 @@
 #include "server/server.h"
 #include "third_party/cxxopts/include/cxxopts.hpp"
 
+void UnitTest();
+
 int main(int argc, char* argv[]) {
     cxxopts::Options options("calc_server", "国标麻将 C++ 算番服务器");
     options.add_options()

@@ -1,12 +1,12 @@
-#include "server.h"
+#include "server/server.h"
 #include <iostream>
 #include <stdexcept>
-#include "console.h"
-#include "fan.h"
-#include "handtiles.h"
-#include "print.h"
-#include "../utils/log.h"
-#include "../utils/format.h"
+#include "third_party/GB-Mahjong/console/console.h"
+#include "third_party/GB-Mahjong/console/print.h"
+#include "third_party/GB-Mahjong/mahjong/fan.h"
+#include "third_party/GB-Mahjong/mahjong/handtiles.h"
+#include "utils/log.h"
+#include "utils/format.h"
 
 using json = nlohmann::json;
 
